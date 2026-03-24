@@ -1,0 +1,26 @@
+[project]
+name = "rag-qa-system"
+version = "0.1.0"
+description = "RAG Q&A System with Streamlit, Chroma, and Remote Embedding API"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "streamlit>=1.32.0",
+    "llama-index>=0.10.0",
+    "llama-index-llms-openai>=0.1.0",
+    "chromadb>=0.4.0",
+    "httpx>=0.25.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "tqdm>=4.65.0",
+]
+
+[dependency-groups]
+dev = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

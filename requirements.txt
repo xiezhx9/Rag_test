@@ -1,0 +1,23 @@
+# RAG Q&A System Dependencies
+
+# Web Framework
+streamlit>=1.32.0
+
+# RAG Framework
+llama-index>=0.10.0
+llama-index-llms-openai>=0.1.0
+
+# Vector Database
+chromadb>=0.4.0
+
+# HTTP Client (for embedding API)
+httpx>=0.25.0
+
+# LLM Client
+openai>=1.0.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# Utilities
+tqdm>=4.65.0

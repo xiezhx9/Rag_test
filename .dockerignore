@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# uv
+.uv/
+uv.lock
+
+# Streamlit
+.streamlit/
+
+# Chroma
+chroma_db/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Metadata
+document_metadata.json
+
+# Test
+test_*/
+.pytest_cache/
+
+# Logs
+*.log
+
+# Hugging Face cache
+.cache/
