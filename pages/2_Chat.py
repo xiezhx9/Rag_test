@@ -29,12 +29,17 @@ st.markdown("---")
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+# Initialize pending question (for quick questions)
+if "pending_question" not in st.session_state:
+    st.session_state.pending_question = None
+
 # Sidebar for chat history
 with st.sidebar:
     st.subheader("📜 对话历史")
 
     if st.button("🗑️ 清空对话", type="secondary"):
         st.session_state.chat_history = []
+        st.session_state.pending_question = None
         st.rerun()
 
     st.markdown("---")
@@ -62,6 +67,47 @@ for msg in st.session_state.chat_history:
                 st.markdown("**📚 参考来源:**")
                 for source in msg["sources"]:
                     st.markdown(f"- {source}")
+
+# Handle pending question from quick buttons
+pending = st.session_state.pending_question
+if pending:
+    st.session_state.pending_question = None  # Clear pending question
+
+    # Check if documents are indexed
+    if engine.get_document_count() == 0:
+        st.warning("⚠️ 请先上传文档！前往 📄 Documents 页面上传您的 Markdown 文件。")
+    else:
+        # Add user message
+        st.session_state.chat_history.append({"role": "user", "content": pending})
+
+        with st.chat_message("user"):
+            st.markdown(pending)
+
+        # Get response
+        with st.chat_message("assistant"):
+            response_placeholder = st.empty()
+            full_response = ""
+
+            # Stream response
+            for chunk in engine.stream_query(pending):
+                full_response += chunk
+                response_placeholder.markdown(full_response + "▌")
+
+            response_placeholder.markdown(full_response)
+
+            # Get sources
+            sources = engine.get_sources(pending)
+
+            if sources:
+                st.markdown("---")
+                st.markdown("**📚 参考来源:**")
+                for source in sources:
+                    st.markdown(f"- {source}")
+
+            # Save to history
+            st.session_state.chat_history.append(
+                {"role": "assistant", "content": full_response, "sources": sources}
+            )
 
 # Chat input
 if prompt := st.chat_input("输入您的问题..."):
@@ -111,5 +157,5 @@ cols = st.columns(len(quick_questions))
 for i, question in enumerate(quick_questions):
     with cols[i]:
         if st.button(question, key=f"quick_{i}"):
-            st.session_state.chat_history.append({"role": "user", "content": question})
+            st.session_state.pending_question = question
             st.rerun()

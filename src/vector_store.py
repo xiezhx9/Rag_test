@@ -24,69 +24,12 @@ class VectorStore:
         # Import embedding model to create embedding function
         from .embeddings import EmbeddingModel
 
-        embedding_model = EmbeddingModel()
+        self._embedding_model = EmbeddingModel()
 
-        # Create custom embedding function
-        class CustomEmbeddingFunction:
-            def name(self):
-                return "custom_embedding_function"
-
-            def __call__(self, input):
-                # ChromaDB passes 'input' as a list of texts
-                return embedding_model.embed_texts(input)
-
-        embedding_function = CustomEmbeddingFunction()
-
-        # Create or get collection with embedding function
+        # Create or get collection (without embedding function - we'll pass embeddings manually)
         self.collection = self.client.get_or_create_collection(
             name="documents",
             metadata={"hnsw:space": "cosine"},
-            embedding_function=embedding_function,
-        )
-
-        self.client = chromadb.PersistentClient(path=self.persist_dir)
-
-        # Import embedding model to create embedding function
-        from .embeddings import EmbeddingModel
-
-        embedding_model = EmbeddingModel()
-
-        # Create custom embedding function
-        class CustomEmbeddingFunction:
-            def name(self):
-                return "custom_embedding_function"
-
-            def __call__(self, texts: List[str]):
-                return embedding_model.embed_texts(texts)
-
-        embedding_function = CustomEmbeddingFunction()
-
-        # Create or get collection with embedding function
-        self.collection = self.client.get_or_create_collection(
-            name="documents",
-            metadata={"hnsw:space": "cosine"},
-            embedding_function=embedding_function,
-        )
-
-        self.client = chromadb.PersistentClient(path=self.persist_dir)
-
-        # Import embedding model to create embedding function
-        from .embeddings import EmbeddingModel
-
-        embedding_model = EmbeddingModel()
-
-        # Create custom embedding function
-        class CustomEmbeddingFunction:
-            def __call__(self, texts: List[str]):
-                return embedding_model.embed_texts(texts)
-
-        embedding_function = CustomEmbeddingFunction()
-
-        # Create or get collection with embedding function
-        self.collection = self.client.get_or_create_collection(
-            name="documents",
-            metadata={"hnsw:space": "cosine"},
-            embedding_function=embedding_function,
         )
 
     def add_documents(
@@ -114,13 +57,17 @@ class VectorStore:
         if metadatas is None:
             metadatas = [{} for _ in texts]
 
-        # Add documents with embeddings if provided
-        if embeddings is not None:
-            self.collection.add(
-                documents=texts, metadatas=metadatas, ids=ids, embeddings=embeddings
-            )
-        else:
-            self.collection.add(documents=texts, metadatas=metadatas, ids=ids)
+        # Generate embeddings if not provided
+        if embeddings is None:
+            embeddings = self._embedding_model.embed_texts(texts)
+
+        # Add documents with embeddings
+        self.collection.add(
+            documents=texts,
+            metadatas=metadatas,
+            ids=ids,
+            embeddings=embeddings,
+        )
 
     def search(
         self,
