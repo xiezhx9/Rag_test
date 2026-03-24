@@ -4,6 +4,7 @@ Documents Page - Upload and manage documents
 
 import streamlit as st
 import time
+import os
 from datetime import datetime
 
 st.set_page_config(
@@ -29,7 +30,7 @@ doc_manager = get_doc_manager()
 
 # Page header
 st.title("📄 文档管理")
-st.markdown("上传和管理您的 Markdown 文档")
+st.markdown("上传和管理您的文档（支持 Markdown、PDF、Word、PPT）")
 
 st.markdown("---")
 
@@ -41,10 +42,10 @@ tab1, tab2 = st.tabs(["📁 文件上传", "📝 文本粘贴"])
 
 with tab1:
     uploaded_files = st.file_uploader(
-        "选择 Markdown 文件",
-        type=["md"],
+        "选择文档文件",
+        type=["md", "pdf", "docx", "pptx"],
         accept_multiple_files=True,
-        help="支持拖拽上传多个 .md 文件",
+        help="支持 .md、.pdf、.docx、.pptx 格式，可拖拽上传多个文件",
     )
 
     if uploaded_files:
@@ -56,8 +57,19 @@ with tab1:
 
             for i, uploaded_file in enumerate(uploaded_files):
                 status_text.text(f"正在处理: {uploaded_file.name}")
-                content = uploaded_file.read().decode("utf-8")
-                file_contents[uploaded_file.name] = content
+
+                # Read file content
+                content = uploaded_file.read()
+
+                # Get file extension
+                ext = os.path.splitext(uploaded_file.name.lower())[1]
+
+                # For text files (md), decode to string; for binary files, keep as bytes
+                if ext in [".md", ".txt"]:
+                    file_contents[uploaded_file.name] = content.decode("utf-8")
+                else:
+                    file_contents[uploaded_file.name] = content
+
                 progress_bar.progress((i + 1) / len(uploaded_files) * 0.5)
 
             # Index documents
@@ -134,7 +146,7 @@ st.subheader("📚 已索引文档")
 documents = doc_manager.list_documents()
 
 if not documents:
-    st.info("暂无文档。请上传 Markdown 文件开始使用。")
+    st.info("暂无文档。请上传 Markdown、PDF、Word 或 PPT 文件开始使用。")
 else:
     # Display documents in a table
     for doc in documents:

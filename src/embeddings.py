@@ -79,7 +79,7 @@ class EmbeddingModel:
 
     def embed_texts(self, texts: List[str]) -> List[List[float]]:
         """
-        Embed multiple texts in batch.
+        Embed multiple texts in batch with automatic chunking.
 
         Args:
             texts: List of texts to embed
@@ -93,29 +93,63 @@ class EmbeddingModel:
         # Handle empty strings
         texts = [t if t else " " for t in texts]
 
-        # Batch request
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
         }
 
-        payload = {"model": self.model_name, "input": texts}
+        # Split into smaller batches to avoid API size limits
+        # Estimate: each character ~1 byte, limit ~4MB, use conservative batch size
+        BATCH_SIZE = 50  # Number of texts per batch (increased for faster processing)
+        MAX_CHARS_PER_BATCH = 200000  # ~200KB per batch to be safe
 
-        try:
-            response = self.client.post(self.api_url, json=payload, headers=headers)
-            response.raise_for_status()
+        all_embeddings = []
 
-            data = response.json()
-            # Sort by index to ensure correct order
-            embeddings_data = sorted(data["data"], key=lambda x: x["index"])
-            return [item["embedding"] for item in embeddings_data]
+        i = 0
+        while i < len(texts):
+            # Build batch with size limit
+            batch_texts = []
+            batch_chars = 0
 
-        except httpx.HTTPStatusError as e:
-            raise RuntimeError(
-                f"Embedding API error: {e.response.status_code} - {e.response.text}"
-            )
-        except Exception as e:
-            raise RuntimeError(f"Embedding API request failed: {e}")
+            while i < len(texts) and len(batch_texts) < BATCH_SIZE:
+                text_len = len(texts[i])
+                if batch_chars + text_len > MAX_CHARS_PER_BATCH and batch_texts:
+                    # This text would exceed limit, process current batch first
+                    break
+                batch_texts.append(texts[i])
+                batch_chars += text_len
+                i += 1
+
+            if not batch_texts:
+                # Single text too large, skip it with warning
+                if i < len(texts):
+                    print(
+                        f"Warning: Text at index {i} is too large ({len(texts[i])} chars), skipping"
+                    )
+                    i += 1
+                continue
+
+            # Send batch request
+            payload = {"model": self.model_name, "input": batch_texts}
+
+            try:
+                response = self.client.post(self.api_url, json=payload, headers=headers)
+                response.raise_for_status()
+
+                data = response.json()
+                # Sort by index to ensure correct order
+                embeddings_data = sorted(data["data"], key=lambda x: x["index"])
+                batch_embeddings = [item["embedding"] for item in embeddings_data]
+                all_embeddings.extend(batch_embeddings)
+
+            except httpx.HTTPStatusError as e:
+                raise RuntimeError(
+                    f"Embedding API error: {e.response.status_code} - {e.response.text}"
+                )
+            except Exception as e:
+                raise RuntimeError(f"Embedding API request failed: {e}")
+
+        return all_embeddings
 
     def __del__(self):
         """Cleanup HTTP client."""

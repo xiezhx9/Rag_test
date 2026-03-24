@@ -4,7 +4,7 @@ RAG Engine - Retrieval-Augmented Generation pipeline
 
 import os
 import uuid
-from typing import List, Dict, Any, Generator, Optional
+from typing import List, Dict, Any, Generator, Optional, Union
 from dotenv import load_dotenv
 
 from .llm_client import LLMClient
@@ -25,12 +25,12 @@ class RAGEngine:
         self.doc_processor = DocumentProcessor()
         self.top_k = int(os.environ.get("TOP_K", "5"))
 
-    def index_documents(self, file_contents: Dict[str, str]) -> int:
+    def index_documents(self, file_contents: Dict[str, Union[str, bytes]]) -> int:
         """
         Index documents from file contents.
 
         Args:
-            file_contents: Dict mapping filename to content
+            file_contents: Dict mapping filename to content (str for text, bytes for binary)
 
         Returns:
             Number of chunks indexed
@@ -41,7 +41,8 @@ class RAGEngine:
         all_ids = []
 
         for filename, content in file_contents.items():
-            chunks = self.doc_processor.process_uploaded_content(content, filename)
+            # Use process_uploaded_file for automatic format detection
+            chunks = self.doc_processor.process_uploaded_file(content, filename)
 
             for chunk in chunks:
                 chunk_id = str(uuid.uuid4())
